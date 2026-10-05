@@ -18,7 +18,7 @@ DAG_DIR = Path(__file__).resolve().parent.parent / "airflow" / "dags"
 def dag():
     bag = DagBag(dag_folder=str(DAG_DIR), include_examples=False)
     assert not bag.import_errors, bag.import_errors
-    return bag.get_dag("taxi_elt")
+    return bag.dags["taxi_elt"]  # not get_dag(): that would query the metadata DB
 
 
 def test_task_order(dag):
