@@ -6,7 +6,8 @@ from types import SimpleNamespace
 
 import pytest
 
-pytest.importorskip("airflow")
+# Not "airflow": the repo has its own airflow/ folder, which Python would accept as a namespace package.
+pytest.importorskip("airflow.models")
 
 from airflow.models import DagBag
 from airflow.timetables.base import TimeRestriction
