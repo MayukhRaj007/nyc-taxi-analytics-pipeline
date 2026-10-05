@@ -1,7 +1,7 @@
 # NYC Taxi Analytics Pipeline
 
-[![CI](https://github.com/YOUR-USERNAME/nyc-taxi-analytics-pipeline/actions/workflows/ci.yml/badge.svg)](https://github.com/YOUR-USERNAME/nyc-taxi-analytics-pipeline/actions/workflows/ci.yml)
-[![dbt docs](https://img.shields.io/badge/dbt-docs-orange)](https://YOUR-USERNAME.github.io/nyc-taxi-analytics-pipeline/)
+[![CI](https://github.com/MayukhRaj007/nyc-taxi-analytics-pipeline/actions/workflows/ci.yml/badge.svg)](https://github.com/MayukhRaj007/nyc-taxi-analytics-pipeline/actions/workflows/ci.yml)
+[![dbt docs](https://img.shields.io/badge/dbt-docs-orange)](https://MayukhRaj007.github.io/nyc-taxi-analytics-pipeline/)
 
 An orchestrated **ELT pipeline**: Apache Airflow downloads public NYC TLC yellow-taxi trip data, loads it into
 **DuckDB**, and **dbt** turns it into tested analytics tables. Everything is free and local: one `docker compose up`,
@@ -49,7 +49,7 @@ flowchart LR
 Requirements: Docker Desktop (WSL2 backend on Windows) with about 6 GB of memory available to Docker. Nothing else.
 
 ```bash
-git clone https://github.com/YOUR-USERNAME/nyc-taxi-analytics-pipeline.git && cd nyc-taxi-analytics-pipeline
+git clone https://github.com/MayukhRaj007/nyc-taxi-analytics-pipeline.git && cd nyc-taxi-analytics-pipeline
 docker compose up -d --build        # or: make up
 # open http://localhost:8080  (login admin / admin, local-only credentials)
 ```
@@ -254,7 +254,7 @@ docs/images/        Charts (and your screenshots)
 1. Push to GitHub, then **Settings > Pages > Source: GitHub Actions**.
 2. Pushes to `main` that touch `taxi_dbt/` run `docs.yml`, which builds the project on the sample data, runs
    `dbt docs generate` and deploys `index.html`, `manifest.json` and `catalog.json`.
-3. Replace `YOUR-USERNAME` in this README and in `taxi_dbt/models/marts/_exposures.yml`.
+3. The repo URL placeholders in this README and in `taxi_dbt/models/marts/_exposures.yml` already point at this repository.
 
 ## What I would do next
 
