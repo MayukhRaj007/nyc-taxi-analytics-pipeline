@@ -1,0 +1,94 @@
+# NYC taxi ELT stack: Airflow (LocalExecutor) + Postgres metadata DB.
+# DuckDB is a file on a bind mount, so it needs no service of its own.
+
+x-airflow-common: &airflow-common
+  build:
+    context: .
+    dockerfile: airflow/Dockerfile
+  image: nyc-taxi-airflow:local
+  environment: &airflow-env
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER:-airflow}:${POSTGRES_PASSWORD:-airflow}@postgres/${POSTGRES_DB:-airflow}
+    AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+    AIRFLOW__CORE__DAGS_FOLDER: /opt/airflow/project/airflow/dags
+    # Unpaused so `docker compose up` starts the 3-month catchup by itself.
+    AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "false"
+    AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW_SECRET_KEY:-local-dev-only-change-me}
+    AIRFLOW__WEBSERVER__EXPOSE_CONFIG: "false"
+    # Pipeline settings (same paths inside every container)
+    PROJECT_DIR: /opt/airflow/project
+    DATA_DIR: /opt/airflow/project/data
+    DUCKDB_PATH: /opt/airflow/project/warehouse/taxi.duckdb
+    DBT_PROJECT_DIR: /opt/airflow/project/taxi_dbt
+    DBT_PROFILES_DIR: /opt/airflow/project/taxi_dbt
+    PYTHONPATH: /opt/airflow/project/airflow/dags
+  user: "${AIRFLOW_UID:-50000}:0"
+  volumes:
+    # Whole repo in one mount: DAGs, dbt project, data and warehouse all live in it.
+    - .:/opt/airflow/project
+    # Task logs go to a named volume (keeps OneDrive from syncing log churn).
+    - airflow-logs:/opt/airflow/logs
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-airflow}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-airflow}
+      POSTGRES_DB: ${POSTGRES_DB:-airflow}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-airflow}"]
+      interval: 5s
+      retries: 10
+    restart: unless-stopped
+
+  airflow-init:
+    <<: *airflow-common
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - |
+        airflow db migrate &&
+        airflow users create --username "${AIRFLOW_ADMIN_USER:-admin}" --password "${AIRFLOW_ADMIN_PASSWORD:-admin}" \
+          --firstname Admin --lastname User --role Admin --email admin@example.com || true
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  airflow-webserver:
+    <<: *airflow-common
+    command: webserver
+    ports:
+      - "${AIRFLOW_PORT:-8080}:8080"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 8
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  airflow-scheduler:
+    <<: *airflow-common
+    command: scheduler
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  # One-shot tooling container: dbt, pytest, ruff, sqlfluff, chart script.
+  # Not started by `up`; used via `docker compose run --rm tools <cmd>`.
+  tools:
+    <<: *airflow-common
+    profiles: ["tools"]
+    entrypoint: /bin/bash
+    working_dir: /opt/airflow/project
+
+volumes:
+  postgres-data:
+  airflow-logs:
