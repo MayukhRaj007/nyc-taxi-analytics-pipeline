@@ -1,0 +1,24 @@
+[project]
+name = "nyc-taxi-analytics-pipeline"
+version = "0.1.0"
+requires-python = ">=3.11"
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+extend-exclude = ["taxi_dbt/dbt_packages", "taxi_dbt/target"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "S", "SIM", "RUF"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101"]
+"scripts/*" = ["S608"]
+"airflow/dags/taxi_lib/*" = ["S608"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["taxi_lib"]
+
+[tool.pytest.ini_options]
+pythonpath = ["airflow/dags"]
+testpaths = ["tests"]
