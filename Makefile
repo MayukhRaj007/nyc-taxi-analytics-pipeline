@@ -24,7 +24,7 @@ dbt-build: ## Run dbt deps + build (models and tests) against the warehouse
 	$(TOOLS) "cd taxi_dbt && dbt deps && dbt build"
 
 dbt-docs: ## Generate dbt docs and serve them at http://localhost:8081 (Ctrl+C to stop)
-	$(COMPOSE) run --rm --service-ports tools -c "cd taxi_dbt && dbt deps && dbt docs generate && dbt docs serve --host 0.0.0.0 --port 8081 --no-browser"
+	$(COMPOSE) run --rm --service-ports tools -c "cd taxi_dbt && dbt deps && dbt docs generate && python -m http.server 8081 --directory target"
 
 charts: ## Render the README charts from the marts into docs/images
 	$(TOOLS) "python scripts/make_charts.py"
