@@ -44,16 +44,13 @@ RAW_COLUMNS: dict[str, str] = {
 def _create_table(con: duckdb.DuckDBPyConnection) -> None:
     cols = ", ".join(f'"{name}" {dtype}' for name, dtype in RAW_COLUMNS.items())
     con.execute(f"CREATE SCHEMA IF NOT EXISTS {RAW_SCHEMA}")
-    con.execute(
-        f"CREATE TABLE IF NOT EXISTS {RAW_SCHEMA}.{RAW_TABLE} ({cols}, source_month DATE, loaded_at TIMESTAMP)"
-    )
+    con.execute(f"CREATE TABLE IF NOT EXISTS {RAW_SCHEMA}.{RAW_TABLE} ({cols}, source_month DATE, loaded_at TIMESTAMP)")
 
 
 def _select_list(con: duckdb.DuckDBPyConnection, parquet: str) -> str:
     """Build a SELECT that maps the file's columns (case-insensitive) onto RAW_COLUMNS."""
     found = {
-        row[0].lower(): row[0]
-        for row in con.execute("DESCRIBE SELECT * FROM read_parquet(?)", [parquet]).fetchall()
+        row[0].lower(): row[0] for row in con.execute("DESCRIBE SELECT * FROM read_parquet(?)", [parquet]).fetchall()
     }
     parts = []
     for name, dtype in RAW_COLUMNS.items():

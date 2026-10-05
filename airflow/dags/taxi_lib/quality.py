@@ -17,7 +17,7 @@ from taxi_lib.months import month_bounds
 log = logging.getLogger(__name__)
 
 # Columns that every real trip must have. Other columns (passenger_count,
-# congestion_surcharge, ...) are legitimately null for ~5% of rows, so they are
+# congestion_surcharge, ...) are legitimately null for ~20% of rows (flex-fare trips), so they are
 # reported but never fail the run.
 CRITICAL_COLUMNS = [
     "tpep_pickup_datetime",
@@ -58,9 +58,7 @@ def check_quality(
         raw_rows = con.execute(
             "SELECT count(*) FROM raw.yellow_trips WHERE source_month = ?", [month_start]
         ).fetchone()[0]
-        results.append(
-            CheckResult("raw_row_count", raw_rows >= min_rows, f"{raw_rows:,} rows (minimum {min_rows:,})")
-        )
+        results.append(CheckResult("raw_row_count", raw_rows >= min_rows, f"{raw_rows:,} rows (minimum {min_rows:,})"))
 
         if raw_rows:
             for col in CRITICAL_COLUMNS + INFO_COLUMNS:
@@ -89,7 +87,8 @@ def check_quality(
             CheckResult(
                 "fct_trips_retention",
                 fct_rows > 0 and retention >= min_retention,
-                f"{fct_rows:,} of {raw_rows:,} raw rows survived cleaning ({retention:.2%}, minimum {min_retention:.0%})",
+                f"{fct_rows:,} of {raw_rows:,} raw rows survived cleaning "
+                f"({retention:.2%}, minimum {min_retention:.0%})",
             )
         )
     finally:
