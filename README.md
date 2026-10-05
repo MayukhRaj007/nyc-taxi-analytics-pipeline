@@ -74,12 +74,10 @@ No `make` on Windows? Every target is a plain `docker compose ...` line in the [
 
 ### Screenshots
 
-<!-- Replace these placeholders with real screenshots (save them in docs/images/). -->
-
 | Airflow graph view | dbt lineage graph |
 |---|---|
 | ![Airflow graph view](docs/images/airflow_graph.png) | ![dbt lineage graph](docs/images/dbt_lineage.png) |
-| *Placeholder: open <http://localhost:8080> > `taxi_elt` > Graph, then save as `docs/images/airflow_graph.png`* | *Placeholder: run `make dbt-docs`, open `fct_trips` and click the lineage icon, then save as `docs/images/dbt_lineage.png`* |
+| `taxi_elt`: all 6 tasks succeeded for the Feb 2025 run | `fct_trips` lineage from `raw.yellow_trips` through staging and intermediate to the marts, with the singular tests and the charts exposure |
 
 ## Results
 
@@ -254,7 +252,7 @@ docs/images/        Charts (and your screenshots)
 1. Push to GitHub, then **Settings > Pages > Source: GitHub Actions**.
 2. Pushes to `main` that touch `taxi_dbt/` run `docs.yml`, which builds the project on the sample data, runs
    `dbt docs generate` and deploys `index.html`, `manifest.json` and `catalog.json`.
-3. The repo URL placeholders in this README and in `taxi_dbt/models/marts/_exposures.yml` already point at this repository.
+3. The repo URLs in this README and in `taxi_dbt/models/marts/_exposures.yml` already point at this repository.
 
 ## What I would do next
 
