@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: Lint, test, dbt build (sample data)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      # CI never downloads the 60 MB monthly files: it loads the committed
+      # 3,000-row sample into a throwaway DuckDB file and builds the full dbt project on it.
+      DUCKDB_PATH: ${{ github.workspace }}/warehouse/ci.duckdb
+      DBT_PROFILES_DIR: ${{ github.workspace }}/taxi_dbt
+      DUCKDB_TEMP_DIR: ${{ runner.temp }}/duckdb_tmp
+      PYTHONPATH: ${{ github.workspace }}/airflow/dags
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: airflow/requirements-dbt.txt
+
+      - name: Install tooling (dbt, sqlfluff, ruff, pytest)
+        run: pip install -r airflow/requirements-dbt.txt
+
+      - name: ruff (lint)
+        run: ruff check .
+
+      - name: ruff (format)
+        run: ruff format --check .
+
+      - name: pytest
+        run: python -m pytest -q
+
+      - name: Load sample data into DuckDB
+        run: python scripts/load_sample.py "$DUCKDB_PATH"
+
+      - name: dbt deps
+        run: dbt deps
+        working-directory: taxi_dbt
+
+      - name: sqlfluff (needs the dbt project to compile)
+        run: sqlfluff lint taxi_dbt/models taxi_dbt/snapshots taxi_dbt/tests --disable-progress-bar
+
+      - name: dbt parse
+        run: dbt parse
+        working-directory: taxi_dbt
+
+      - name: dbt build (seed, models, snapshot, tests)
+        run: dbt build
+        working-directory: taxi_dbt

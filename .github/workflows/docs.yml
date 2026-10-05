@@ -1,0 +1,75 @@
+name: Publish dbt docs
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "taxi_dbt/**"
+      - "sample_data/**"
+      - ".github/workflows/docs.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Generate dbt docs
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DUCKDB_PATH: ${{ github.workspace }}/warehouse/docs.duckdb
+      DBT_PROFILES_DIR: ${{ github.workspace }}/taxi_dbt
+      DUCKDB_TEMP_DIR: ${{ runner.temp }}/duckdb_tmp
+      PYTHONPATH: ${{ github.workspace }}/airflow/dags
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: airflow/requirements-dbt.txt
+
+      - run: pip install -r airflow/requirements-dbt.txt
+
+      # The catalog (column types, row counts) needs real tables, so build the
+      # project on the committed sample data first.
+      - name: Build project on sample data
+        run: |
+          python scripts/load_sample.py "$DUCKDB_PATH"
+          cd taxi_dbt
+          dbt deps
+          dbt build
+
+      - name: Generate docs
+        run: dbt docs generate
+        working-directory: taxi_dbt
+
+      - name: Assemble static site
+        run: |
+          mkdir -p _site
+          cp taxi_dbt/target/index.html taxi_dbt/target/manifest.json taxi_dbt/target/catalog.json _site/
+          touch _site/.nojekyll
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
