@@ -12,7 +12,7 @@ extend-exclude = ["taxi_dbt/dbt_packages", "taxi_dbt/target"]
 select = ["E", "F", "I", "B", "UP", "S", "SIM", "RUF"]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["S101"]
+"tests/*" = ["S101", "S608"]
 "scripts/*" = ["S608"]
 "airflow/dags/taxi_lib/*" = ["S608"]
 
