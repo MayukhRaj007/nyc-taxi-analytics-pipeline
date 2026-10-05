@@ -22,7 +22,6 @@ jobs:
       # 3,000-row sample into a throwaway DuckDB file and builds the full dbt project on it.
       DUCKDB_PATH: ${{ github.workspace }}/warehouse/ci.duckdb
       DBT_PROFILES_DIR: ${{ github.workspace }}/taxi_dbt
-      DUCKDB_TEMP_DIR: ${{ runner.temp }}/duckdb_tmp
       PYTHONPATH: ${{ github.workspace }}/airflow/dags
     steps:
       - uses: actions/checkout@v4

@@ -26,7 +26,6 @@ jobs:
     env:
       DUCKDB_PATH: ${{ github.workspace }}/warehouse/docs.duckdb
       DBT_PROFILES_DIR: ${{ github.workspace }}/taxi_dbt
-      DUCKDB_TEMP_DIR: ${{ runner.temp }}/duckdb_tmp
       PYTHONPATH: ${{ github.workspace }}/airflow/dags
     steps:
       - uses: actions/checkout@v4
