@@ -1,0 +1,3 @@
+taxi_dbt/target/
+taxi_dbt/dbt_packages/
+taxi_dbt/seeds/

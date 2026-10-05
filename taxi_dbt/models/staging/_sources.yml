@@ -24,7 +24,7 @@ sources:
           - name: tpep_dropoff_datetime
             description: Timestamp when the meter was disengaged.
           - name: passenger_count
-            description: Passenger count entered by the driver. Null for ~5% of rows.
+            description: Passenger count entered by the driver. Null for ~20% of rows in 2025 files.
           - name: trip_distance
             description: Trip distance in miles reported by the taximeter.
           - name: RatecodeID

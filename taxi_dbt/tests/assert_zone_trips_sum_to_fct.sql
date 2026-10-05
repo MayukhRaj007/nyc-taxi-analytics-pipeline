@@ -3,5 +3,6 @@
 select
     (select count(*) from {{ ref('fct_trips') }}) as fct_trips,
     (select sum(trip_count) from {{ ref('mart_zone_performance') }}) as zone_trips
-where (select count(*) from {{ ref('fct_trips') }})
-   != (select sum(trip_count) from {{ ref('mart_zone_performance') }})
+where
+    (select count(*) from {{ ref('fct_trips') }})
+    != (select sum(trip_count) from {{ ref('mart_zone_performance') }})

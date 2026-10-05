@@ -29,7 +29,9 @@ with trips as (
     where pickup_ts >= cast('{{ var("start_date") }}' as date)
       and pickup_ts <  cast('{{ var("end_date") }}' as date)
         {% else %}
-    where pickup_ts >= (select max(pickup_date) from {{ this }}) - interval '{{ var("incremental_lookback_days") }} days'
+            where pickup_ts >= (
+                select max(prev.pickup_date) from {{ this }} as prev
+            ) - interval '{{ var("incremental_lookback_days") }} days'
         {% endif %}
     {% endif %}
 
@@ -51,10 +53,10 @@ select
     vendor_id,
     pickup_ts,
     dropoff_ts,
-    cast(pickup_ts as date)                                  as pickup_date,
-    extract(hour from pickup_ts)::integer                    as pickup_hour,
-    isodow(pickup_ts)::integer                               as pickup_day_of_week,
-    isodow(pickup_ts) in (6, 7)                              as is_weekend,
+    cast(pickup_ts as date) as pickup_date,
+    cast(extract(hour from pickup_ts) as integer) as pickup_hour,
+    cast(isodow(pickup_ts) as integer) as pickup_day_of_week,
+    isodow(pickup_ts) in (6, 7) as is_weekend,
     pickup_location_id,
     dropoff_location_id,
     passenger_count,
@@ -62,7 +64,7 @@ select
     duration_minutes,
     avg_speed_mph,
     payment_type_id,
-    {{ payment_type_name('payment_type_id') }}               as payment_type_name,
+    {{ payment_type_name('payment_type_id') }} as payment_type_name,
     fare_amount,
     tip_amount,
     tolls_amount,

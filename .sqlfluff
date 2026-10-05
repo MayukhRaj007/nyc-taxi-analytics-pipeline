@@ -1,0 +1,34 @@
+[sqlfluff]
+dialect = duckdb
+templater = dbt
+max_line_length = 120
+exclude_rules = ST06, AM04, RF06
+
+[sqlfluff:templater:dbt]
+project_dir = taxi_dbt
+profiles_dir = taxi_dbt
+
+[sqlfluff:indentation]
+indent_unit = space
+tab_space_size = 4
+
+[sqlfluff:rules:capitalisation.keywords]
+capitalisation_policy = lower
+
+[sqlfluff:rules:capitalisation.functions]
+extended_capitalisation_policy = lower
+
+[sqlfluff:rules:capitalisation.literals]
+capitalisation_policy = lower
+
+[sqlfluff:rules:capitalisation.types]
+extended_capitalisation_policy = lower
+
+[sqlfluff:rules:aliasing.table]
+aliasing = explicit
+
+[sqlfluff:rules:capitalisation.identifiers]
+extended_capitalisation_policy = lower
+
+[sqlfluff:rules:convention.casting_style]
+preferred_type_casting_style = cast

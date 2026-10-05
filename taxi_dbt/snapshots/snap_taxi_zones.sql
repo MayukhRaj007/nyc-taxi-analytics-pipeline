@@ -16,6 +16,6 @@
     )
 }}
 
-select * from {{ ref('stg_taxi_zones') }}
+    select * from {{ ref('stg_taxi_zones') }}
 
 {% endsnapshot %}
