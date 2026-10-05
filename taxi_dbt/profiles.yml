@@ -1,0 +1,13 @@
+taxi_dbt:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      # Same file the Airflow loader writes to (mounted volume).
+      path: "{{ env_var('DUCKDB_PATH', '../warehouse/taxi.duckdb') }}"
+      threads: 4
+      # Spill to container-local disk: DuckDB cannot spill reliably onto the bind mount.
+      temp_directory: "/tmp/duckdb_tmp"
+      settings:
+        # Leave headroom for Airflow and Postgres on a laptop-sized Docker VM.
+        memory_limit: "3GB"

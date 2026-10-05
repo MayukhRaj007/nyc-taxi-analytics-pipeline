@@ -1,0 +1,211 @@
+version: 2
+
+models:
+  - name: fct_trips
+    description: >
+      Fact table of cleaned yellow-taxi trips. Grain: one row per trip. Built
+      incrementally (unique_key = trip_id, delete+insert) so each monthly Airflow
+      run only rebuilds the month it loaded.
+    tests:
+      - dbt_expectations.expect_table_row_count_to_be_between:
+          arguments:
+            min_value: 1
+    columns:
+      - name: trip_id
+        description: Surrogate key of the trip (md5 of vendor, timestamps, zones, distance and amounts). Unique by construction.
+        tests:
+          - not_null
+          - unique
+      - name: vendor_id
+        description: TPEP provider code.
+      - name: pickup_ts
+        description: Timestamp the meter was engaged.
+        tests:
+          - not_null
+      - name: dropoff_ts
+        description: Timestamp the meter was disengaged.
+        tests:
+          - not_null
+      - name: pickup_date
+        description: Calendar date of the pickup; the incremental filter column.
+        tests:
+          - not_null
+      - name: pickup_hour
+        description: Hour of day of the pickup, 0-23.
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 23
+      - name: pickup_day_of_week
+        description: ISO weekday of the pickup (1 = Monday ... 7 = Sunday).
+        tests:
+          - accepted_values:
+              arguments:
+                values: [1, 2, 3, 4, 5, 6, 7]
+      - name: is_weekend
+        description: True for Saturday and Sunday pickups.
+      - name: pickup_location_id
+        description: Pickup zone; foreign key to dim_zones.
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_zones')
+                field: location_id
+      - name: dropoff_location_id
+        description: Dropoff zone; foreign key to dim_zones.
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_zones')
+                field: location_id
+      - name: passenger_count
+        description: Passenger count entered by the driver (null when not entered).
+      - name: trip_distance_miles
+        description: Taximeter distance in miles.
+      - name: duration_minutes
+        description: Trip duration in minutes (under 24 hours by construction).
+      - name: avg_speed_mph
+        description: Average speed in mph; NULL when not plausible (see int_trips_enriched).
+      - name: payment_type_id
+        description: TLC payment type code.
+      - name: payment_type_name
+        description: Human-readable payment type.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ["Flex fare", "Credit card", "Cash", "No charge", "Dispute", "Unknown", "Voided trip"]
+      - name: fare_amount
+        description: Metered fare in USD.
+      - name: tip_amount
+        description: Tip in USD (card payments only).
+      - name: tolls_amount
+        description: Tolls in USD.
+      - name: total_amount
+        description: Total charged to the passenger in USD, excluding cash tips.
+      - name: tip_pct
+        description: Tip as a percentage of fare, for card-paid trips only (NULL otherwise).
+      - name: source_month
+        description: Month of the source file the trip was loaded from.
+
+  - name: dim_zones
+    description: Taxi zone dimension (265 zones) with borough, service zone and convenience flags. History of changes is kept in the snap_taxi_zones snapshot.
+    columns:
+      - name: location_id
+        description: TLC zone id; primary key.
+        tests:
+          - not_null
+          - unique
+      - name: borough
+        description: NYC borough, or Unknown / N/A for catch-all zones.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ["Bronx", "Brooklyn", "EWR", "Manhattan", "Queens", "Staten Island", "Unknown", "N/A"]
+      - name: zone
+        description: Zone name.
+      - name: service_zone
+        description: TLC service area.
+      - name: is_airport
+        description: True for airport service zones (JFK, LaGuardia, Newark).
+      - name: is_manhattan
+        description: True when the zone is in Manhattan.
+
+  - name: mart_daily_revenue
+    description: "Daily revenue and trip KPIs. Grain: one row per pickup date."
+    columns:
+      - name: pickup_date
+        description: Calendar date of the pickups; primary key.
+        tests:
+          - not_null
+          - unique
+      - name: trip_count
+        description: Number of trips that day.
+        tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 1
+      - name: total_revenue
+        description: Sum of total_amount in USD (excludes cash tips).
+      - name: fare_revenue
+        description: Sum of metered fares in USD.
+      - name: tip_revenue
+        description: Sum of recorded tips in USD (card only).
+      - name: avg_fare
+        description: Average metered fare in USD.
+      - name: avg_trip_distance_miles
+        description: Average trip distance in miles.
+      - name: avg_tip_pct
+        description: Average tip percentage over card-paid trips.
+      - name: weighted_tip_pct
+        description: "Total tips divided by total fares (percent) over card-paid trips; robust to tiny fares, so prefer it over avg_tip_pct for comparisons."
+
+  - name: mart_zone_performance
+    description: "Pickup-zone leaderboard. Grain: one row per pickup zone."
+    columns:
+      - name: location_id
+        description: Pickup zone id; primary key and foreign key to dim_zones.
+        tests:
+          - not_null
+          - unique
+          - relationships:
+              arguments:
+                to: ref('dim_zones')
+                field: location_id
+      - name: borough
+        description: Borough of the zone.
+      - name: zone
+        description: Zone name.
+      - name: trip_count
+        description: Trips starting in the zone.
+      - name: total_revenue
+        description: Sum of total_amount in USD for trips starting in the zone.
+      - name: avg_fare
+        description: Average metered fare in USD.
+      - name: avg_trip_distance_miles
+        description: Average trip distance in miles.
+      - name: avg_duration_minutes
+        description: Average trip duration in minutes.
+      - name: avg_tip_pct
+        description: Average tip percentage over card-paid trips.
+      - name: weighted_tip_pct
+        description: "Total tips divided by total fares (percent) over card-paid trips; robust to tiny fares, so prefer it over avg_tip_pct for comparisons."
+      - name: trip_count_rank
+        description: Rank by trip_count (1 = busiest).
+      - name: pct_of_all_trips
+        description: Share of all trips, in percent.
+        tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 100
+
+  - name: mart_hourly_demand
+    description: "Demand profile by hour of day across the whole loaded period. Grain: one row per hour (0-23)."
+    columns:
+      - name: pickup_hour
+        description: Hour of day, 0-23; primary key.
+        tests:
+          - not_null
+          - unique
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 23
+      - name: trip_count
+        description: Trips starting in that hour, across all days.
+      - name: days_observed
+        description: Number of distinct days with at least one trip in that hour.
+      - name: avg_trips_per_day
+        description: trip_count divided by days_observed.
+      - name: avg_fare
+        description: Average metered fare in USD.
+      - name: avg_tip_pct
+        description: Average tip percentage over card-paid trips.
+      - name: weighted_tip_pct
+        description: "Total tips divided by total fares (percent) over card-paid trips; robust to tiny fares, so prefer it over avg_tip_pct for comparisons."
+      - name: avg_speed_mph
+        description: Average of trip speeds (plausible speeds only), a rough congestion indicator.

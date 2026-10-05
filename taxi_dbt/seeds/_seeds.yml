@@ -1,0 +1,17 @@
+version: 2
+
+seeds:
+  - name: taxi_zone_lookup
+    description: >
+      Official NYC TLC taxi zone lookup (265 zones), committed as a seed because it is
+      tiny, rarely changes, and should be versioned alongside the models that use it.
+      Source: https://d37ci6vzurychx.cloudfront.net/misc/taxi_zone_lookup.csv
+    columns:
+      - name: LocationID
+        description: TLC zone id (1-265).
+      - name: Borough
+        description: NYC borough name.
+      - name: Zone
+        description: Zone name.
+      - name: service_zone
+        description: TLC service area.

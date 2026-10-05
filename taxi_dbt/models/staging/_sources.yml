@@ -1,0 +1,63 @@
+version: 2
+
+sources:
+  - name: raw
+    description: >
+      Landing schema in DuckDB. Written by the Airflow `load_raw` task (never by dbt)
+      so raw data stays an untouched, auditable copy of what TLC published.
+    schema: raw
+    tables:
+      - name: yellow_trips
+        description: >
+          One row per yellow-taxi trip exactly as published by NYC TLC, with column
+          names and types pinned by the loader. Partitioned logically by `source_month`
+          and reloaded one month at a time (delete + insert), so it is safe to rerun.
+        tests:
+          - dbt_expectations.expect_table_row_count_to_be_between:
+              arguments:
+                min_value: 1
+        columns:
+          - name: VendorID
+            description: TPEP provider code (1 = Creative Mobile, 2 = Curb Mobility/VeriFone, 6 = Myle, 7 = Helix).
+          - name: tpep_pickup_datetime
+            description: Timestamp when the meter was engaged.
+          - name: tpep_dropoff_datetime
+            description: Timestamp when the meter was disengaged.
+          - name: passenger_count
+            description: Passenger count entered by the driver. Null for ~5% of rows.
+          - name: trip_distance
+            description: Trip distance in miles reported by the taximeter.
+          - name: RatecodeID
+            description: Final rate code in effect at the end of the trip.
+          - name: store_and_fwd_flag
+            description: Y if the trip record was held in vehicle memory before being sent, else N.
+          - name: PULocationID
+            description: TLC taxi zone where the meter was engaged.
+          - name: DOLocationID
+            description: TLC taxi zone where the meter was disengaged.
+          - name: payment_type
+            description: Numeric code for how the passenger paid (0 flex fare, 1 card, 2 cash, 3 no charge, 4 dispute, 5 unknown, 6 voided).
+          - name: fare_amount
+            description: Time-and-distance fare calculated by the meter, in USD.
+          - name: extra
+            description: Miscellaneous extras and surcharges (rush hour, overnight), in USD.
+          - name: mta_tax
+            description: MTA tax triggered automatically by the metered rate, in USD.
+          - name: tip_amount
+            description: Tip in USD. Populated automatically for card payments only; cash tips are not recorded.
+          - name: tolls_amount
+            description: Total tolls paid during the trip, in USD.
+          - name: improvement_surcharge
+            description: Improvement surcharge assessed at flag drop, in USD.
+          - name: total_amount
+            description: Total charged to passengers, in USD. Does not include cash tips.
+          - name: congestion_surcharge
+            description: NYS congestion surcharge, in USD.
+          - name: Airport_fee
+            description: Fee for pickups at LaGuardia and JFK, in USD.
+          - name: cbd_congestion_fee
+            description: MTA Congestion Relief Zone fee, in USD. Only present from January 2025.
+          - name: source_month
+            description: First day of the month of the file this row came from. Partition key for idempotent reloads.
+          - name: loaded_at
+            description: When the loader inserted the row.

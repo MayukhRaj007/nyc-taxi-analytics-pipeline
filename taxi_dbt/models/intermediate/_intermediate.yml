@@ -1,0 +1,42 @@
+version: 2
+
+models:
+  - name: int_trips_enriched
+    description: >
+      Staged trips joined to pickup and dropoff zone names, with derived duration,
+      average speed and tip percentage. Grain: one row per trip. Materialised as a
+      view because fct_trips is its only consumer.
+    columns:
+      - name: trip_id
+        description: Surrogate key inherited from stg_yellow_trips.
+        tests:
+          - not_null
+      - name: pickup_borough
+        description: Borough of the pickup zone.
+      - name: pickup_zone
+        description: Name of the pickup zone.
+      - name: dropoff_borough
+        description: Borough of the dropoff zone.
+      - name: dropoff_zone
+        description: Name of the dropoff zone.
+      - name: duration_minutes
+        description: Trip duration in minutes (dropoff minus pickup).
+        tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 1440
+                inclusive: true
+      - name: avg_speed_mph
+        description: Distance divided by duration in mph. NULL when the trip is under 1 minute, has zero distance, or exceeds 100 mph.
+        tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 100
+      - name: tip_pct
+        description: Tip as a percentage of the metered fare. Only defined for card-paid trips with a positive fare (cash tips are not recorded); NULL otherwise.
+        tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
