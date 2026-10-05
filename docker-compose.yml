@@ -86,6 +86,8 @@ services:
   tools:
     <<: *airflow-common
     profiles: ["tools"]
+    ports:
+      - "8081:8081" # dbt docs (published only with `run --service-ports`)
     entrypoint: /bin/bash
     working_dir: /opt/airflow/project
 
